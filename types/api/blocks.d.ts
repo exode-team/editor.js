@@ -157,4 +157,50 @@ export interface Blocks {
    * @throws Error if conversion is not possible
    */
   convert(id: string, newType: string, dataOverrides?: BlockToolData): Promise<BlockAPI>;
+
+  /**
+   * Deletes a Block by id (fork: exode-team/editor.js).
+   * The current Block stays current, the caret moves only when it was in the deleted Block.
+   *
+   * @param id - id of the Block
+   */
+  deleteById(id: string): void;
+
+  /**
+   * Moves a Block by id to a new index (fork: exode-team/editor.js).
+   * The current Block stays current, the caret inside the moved Block is kept.
+   *
+   * @param id - id of the Block
+   * @param toIndex - index to move to
+   */
+  moveById(id: string, toIndex: number): void;
+
+  /**
+   * Replaces all the data of a Block with a new tool instance, the caret inside is restored by offsets
+   * (fork: exode-team/editor.js).
+   *
+   * @param id - id of the Block
+   * @param data - complete new data
+   * @param tunes - complete new tunes
+   */
+  setData(id: string, data: BlockToolData, tunes?: {[name: string]: BlockTuneData}): BlockAPI;
+
+  /**
+   * Replaces the content of one input in place, the caret inside stays (fork: exode-team/editor.js).
+   *
+   * @param id - id of the Block
+   * @param inputIndex - index of the input in the Block
+   * @param html - new inner HTML
+   * @param mapOffset - maps old caret offsets to new ones
+   * @returns false when there is no such Block or input
+   */
+  setInputContent(id: string, inputIndex: number, html: string, mapOffset?: (offset: number) => number): boolean;
+
+  /**
+   * Marks a synchronous edit as remote: DOM changes and block events it produces do not reach onChange
+   * (fork: exode-team/editor.js).
+   *
+   * @param edit - function applying the remote change
+   */
+  runRemoteEdit(edit: () => void): void;
 }

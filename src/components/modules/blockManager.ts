@@ -371,6 +371,39 @@ export default class BlockManager extends Module {
   }
 
   /**
+   * Replaces all the data of a Block with a new tool instance, id and index stay, the caret inside is restored.
+   * Synchronous and without merging, unlike update(): a remote edit brings the complete data.
+   * (fork: exode-team/editor.js)
+   *
+   * @param block - block to update
+   * @param data - complete new data
+   * @param tunes - complete new tunes
+   */
+  public setData(block: Block, data: BlockToolData, tunes: {[name: string]: BlockTuneData} = {}): Block {
+    const caret = this.Editor.Caret.getPosition();
+    const blockIndex = this.getBlockIndex(block);
+    const newBlock = this.composeBlock({
+      id: block.id,
+      tool: block.name,
+      data,
+      tunes,
+    });
+
+    this._blocks.replace(blockIndex, newBlock);
+    block.destroy();
+
+    this.blockDidMutated(BlockChangedMutationType, newBlock, {
+      index: blockIndex,
+    });
+
+    if (caret?.blockId === block.id) {
+      this.Editor.Caret.setPosition(caret);
+    }
+
+    return newBlock;
+  }
+
+  /**
    * Replace passed Block with the new one with specified Tool and data
    *
    * @param block - block to replace

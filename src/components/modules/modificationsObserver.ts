@@ -21,6 +21,11 @@ export default class ModificationsObserver extends Module {
   private disabled = false;
 
   /**
+   * Depth of the running remote edits (fork: exode-team/editor.js)
+   */
+  private remoteEditDepth = 0;
+
+  /**
    * Blocks wrapper mutation observer instance
    */
   private readonly mutationObserver: MutationObserver;
@@ -100,12 +105,35 @@ export default class ModificationsObserver extends Module {
   }
 
   /**
+   * Runs a synchronous remote edit: DOM changes and block events it produces do not reach onChange.
+   * DOM records pending before it are delivered first, so a local change right before stays visible.
+   *
+   * @param edit - function applying the remote change
+   */
+  public runRemoteEdit(edit: () => void): void {
+    const pendingRecords = this.mutationObserver.takeRecords();
+
+    if (pendingRecords.length > 0) {
+      this.redactorChanged(pendingRecords);
+    }
+
+    this.remoteEditDepth++;
+
+    try {
+      edit();
+    } finally {
+      this.mutationObserver.takeRecords();
+      this.remoteEditDepth--;
+    }
+  }
+
+  /**
    * Call onChange event passed to Editor.js configuration
    *
    * @param event - some of our custom change events
    */
   private particularBlockChanged(event: BlockMutationEvent): void {
-    if (this.disabled || !_.isFunction(this.config.onChange)) {
+    if (this.disabled || this.remoteEditDepth > 0 || !_.isFunction(this.config.onChange)) {
       return;
     }
 

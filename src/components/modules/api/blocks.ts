@@ -38,6 +38,13 @@ export default class BlocksAPI extends Module {
       update: this.update,
       composeBlockData: this.composeBlockData,
       convert: this.convert,
+      deleteById: (id: string): void => this.deleteById(id),
+      moveById: (id: string, toIndex: number): void => this.moveById(id, toIndex),
+      setData: (id: string, data: BlockToolData, tunes?: {[name: string]: BlockTuneData}): BlockAPIInterface => this.setData(id, data, tunes),
+      setInputContent: (id: string, inputIndex: number, html: string, mapOffset?: (offset: number) => number): boolean => {
+        return this.setInputContent(id, inputIndex, html, mapOffset);
+      },
+      runRemoteEdit: (edit: () => void): void => this.Editor.ModificationsObserver.runRemoteEdit(edit),
     };
   }
 
@@ -186,6 +193,100 @@ export default class BlocksAPI extends Module {
     }
 
     this.Editor.Toolbar.close();
+  }
+
+  /**
+   * Deletes a Block by id. The current Block stays current, the caret moves only when it was in the deleted Block.
+   * (fork: exode-team/editor.js)
+   *
+   * @param id - id of the Block to delete
+   */
+  public deleteById(id: string): void {
+    const { BlockManager, Caret, Toolbar } = this.Editor;
+    const block = BlockManager.getBlockById(id);
+
+    if (!block) {
+      return;
+    }
+
+    const currentBlock = BlockManager.currentBlock;
+    const hadCaret = Caret.getPosition()?.blockId === id;
+
+    BlockManager.removeBlock(block);
+
+    if (currentBlock && currentBlock !== block) {
+      BlockManager.currentBlock = currentBlock;
+    }
+
+    if (hadCaret && BlockManager.currentBlock) {
+      Caret.setToBlock(BlockManager.currentBlock, Caret.positions.END);
+    }
+
+    if (currentBlock === block) {
+      Toolbar.close();
+    }
+  }
+
+  /**
+   * Moves a Block by id to a new index. The current Block stays current, the caret inside the moved Block is kept.
+   * (fork: exode-team/editor.js)
+   *
+   * @param id - id of the Block to move
+   * @param toIndex - index to move to
+   */
+  public moveById(id: string, toIndex: number): void {
+    const { BlockManager, Caret } = this.Editor;
+    const block = BlockManager.getBlockById(id);
+
+    if (!block || BlockManager.getBlockIndex(block) === toIndex) {
+      return;
+    }
+
+    const currentBlock = BlockManager.currentBlock;
+    const caret = Caret.getPosition();
+
+    BlockManager.move(toIndex, BlockManager.getBlockIndex(block));
+
+    if (currentBlock) {
+      BlockManager.currentBlock = currentBlock;
+    }
+
+    if (caret?.blockId === id) {
+      Caret.setPosition(caret);
+    }
+  }
+
+  /**
+   * Replaces all the data of a Block with a new tool instance, the caret inside is restored by offsets.
+   * (fork: exode-team/editor.js)
+   *
+   * @param id - id of the Block to change
+   * @param data - complete new data
+   * @param tunes - complete new tunes
+   */
+  public setData(id: string, data: BlockToolData, tunes?: {[name: string]: BlockTuneData}): BlockAPIInterface {
+    const { BlockManager } = this.Editor;
+    const block = BlockManager.getBlockById(id);
+
+    if (!block) {
+      throw new Error(`Block with id "${id}" not found`);
+    }
+
+    return new BlockAPI(BlockManager.setData(block, data, tunes));
+  }
+
+  /**
+   * Replaces the content of one input in place, without touching the tool instance and the caret inside.
+   * (fork: exode-team/editor.js)
+   *
+   * @param id - id of the Block to change
+   * @param inputIndex - index of the input in the Block
+   * @param html - new inner HTML
+   * @param mapOffset - maps old caret offsets to new ones
+   * @returns false when there is no such Block or input
+   */
+  public setInputContent(id: string, inputIndex: number, html: string, mapOffset?: (offset: number) => number): boolean {
+    return this.Editor.BlockManager.getBlockById(id)?.setInputContent(inputIndex, html, mapOffset) ?? false;
   }
 
   /**

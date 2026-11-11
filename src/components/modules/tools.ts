@@ -181,16 +181,16 @@ export default class Tools extends Module {
         class: ConvertInlineTool,
         isInternal: true,
       },
-      link: {
-        class: LinkInlineTool,
-        isInternal: true,
-      },
       bold: {
         class: BoldInlineTool,
         isInternal: true,
       },
       italic: {
         class: ItalicInlineTool,
+        isInternal: true,
+      },
+      link: {
+        class: LinkInlineTool,
         isInternal: true,
       },
       paragraph: {

@@ -28,6 +28,7 @@ import { FakeCursorAboutToBeToggled, FakeCursorHaveBeenSet, RedactorDomChanged }
 import type { RedactorDomChangedPayload } from '../events/RedactorDomChanged';
 import { convertBlockDataToString, isSameBlockData } from '../utils/blocks';
 import { PopoverItemType } from '@/types/utils/popover/popover-item-type';
+import { getSelectionOffsets, setSelectionOffsets } from '../utils/caret-offset';
 
 /**
  * Interface describes Block class constructor argument
@@ -657,6 +658,39 @@ export default class Block extends EventsDispatcher<BlockEvents> {
       toolTunes: toolTunesPopoverParams,
       commonTunes: commonTunesPopoverParams,
     };
+  }
+
+  /**
+   * Replaces the content of one input in place, the caret inside stays (fork: exode-team/editor.js)
+   *
+   * @param inputIndex - index in inputs
+   * @param html - new inner HTML, or a value for a native input
+   * @param mapOffset - maps old caret offsets to new ones, identity by default
+   * @returns false when the Block has no such input
+   */
+  public setInputContent(inputIndex: number, html: string, mapOffset: (offset: number) => number = (offset) => offset): boolean {
+    const input = this.inputs[inputIndex];
+
+    if (!input) {
+      return false;
+    }
+
+    const selection = getSelectionOffsets(input);
+
+    if ($.isNativeInput(input)) {
+      (input as HTMLInputElement).value = html;
+    } else {
+      input.innerHTML = html;
+    }
+
+    if (selection) {
+      setSelectionOffsets(input, mapOffset(selection.start), mapOffset(selection.end));
+    }
+
+    toggleEmptyMark(input);
+    this.call(BlockToolAPI.UPDATED);
+
+    return true;
   }
 
   /**

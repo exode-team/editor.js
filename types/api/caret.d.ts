@@ -1,9 +1,32 @@
 import { BlockAPI } from "./block";
 
 /**
+ * Caret position by block, input and character offsets (fork: exode-team/editor.js).
+ * A text character counts 1, a void element like <br> counts 1.
+ */
+export interface CaretPosition {
+  blockId: string;
+  inputIndex: number;
+  start: number;
+  end?: number;
+}
+
+/**
  * Describes Editor`s caret API
  */
 export interface Caret {
+  /**
+   * Returns the caret position or null when the caret is outside of the Editor's inputs
+   */
+  getPosition(): CaretPosition | null;
+
+  /**
+   * Sets the caret by a position got from getPosition()
+   *
+   * @return {boolean}
+   */
+  setPosition(position: CaretPosition): boolean;
+
 
   /**
    * Sets caret to the first Block

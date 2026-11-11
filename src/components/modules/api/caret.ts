@@ -20,6 +20,8 @@ export default class CaretAPI extends Module {
       setToNextBlock: this.setToNextBlock,
       setToBlock: this.setToBlock,
       focus: this.focus,
+      getPosition: () => this.Editor.Caret.getPosition(),
+      setPosition: (position) => this.Editor.Caret.setPosition(position),
     };
   }
 

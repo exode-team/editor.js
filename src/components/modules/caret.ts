@@ -3,6 +3,8 @@ import Module from '../__module';
 import type Block from '../block';
 import * as caretUtils from '../utils/caret';
 import $  from '../dom';
+import { getSelectionOffsets, setSelectionOffsets } from '../utils/caret-offset';
+import type { CaretPosition } from '../../../types/api/caret';
 
 /**
  * Caret
@@ -32,6 +34,48 @@ export default class Caret extends Module {
     return {
       shadowCaret: 'cdx-shadow-caret',
     };
+  }
+
+  /**
+   * Returns the caret position by block id, input index and character offsets (fork: exode-team/editor.js)
+   *
+   * @returns position or null when the caret is outside of the Editor's inputs
+   */
+  public getPosition(): CaretPosition | null {
+    const anchor = $.isNativeInput(document.activeElement) ? document.activeElement : window.getSelection()?.anchorNode;
+    const block = this.Editor.BlockManager.getBlockByChildNode(anchor as Node);
+
+    if (!block) {
+      return null;
+    }
+
+    const inputIndex = block.inputs.findIndex((input) => input === anchor || input.contains(anchor as Node));
+    const offsets = inputIndex === -1 ? null : getSelectionOffsets(block.inputs[inputIndex]);
+
+    return offsets ? { blockId: block.id,
+      inputIndex,
+      ...offsets } : null;
+  }
+
+  /**
+   * Sets the caret by a position got from getPosition() (fork: exode-team/editor.js)
+   *
+   * @param position - block id, input index and character offsets
+   * @returns true when the block and the input exist
+   */
+  public setPosition({ blockId, inputIndex, start, end = start }: CaretPosition): boolean {
+    const { BlockManager } = this.Editor;
+    const block = BlockManager.getBlockById(blockId);
+    const input = block?.inputs[Math.min(inputIndex, block.inputs.length - 1)];
+
+    if (!input) {
+      return false;
+    }
+
+    setSelectionOffsets(input, start, end);
+    BlockManager.setCurrentBlockByChildNode(input);
+
+    return true;
   }
 
   /**
