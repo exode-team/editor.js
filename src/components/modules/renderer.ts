@@ -40,6 +40,7 @@ export default class Renderer extends Module {
               tool,
               data,
               tunes,
+              bindEventsWhenIdle: true,
             });
           } catch (error) {
             _.log(`Block «${tool}» skipped because of plugins error`, 'error', {
@@ -58,6 +59,7 @@ export default class Renderer extends Module {
               tool,
               data,
               tunes,
+              bindEventsWhenIdle: true,
             });
           }
 

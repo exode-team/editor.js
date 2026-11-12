@@ -225,6 +225,8 @@ export default class BlockManager extends Module {
    * @param {string} options.tool - tools passed in editor config {@link EditorConfig#tools}
    * @param {string} [options.id] - unique id for this block
    * @param {BlockToolData} [options.data] - constructor params
+   * @param {boolean} [options.bindEventsWhenIdle] - exode: bind the key handlers on idle (a render of many blocks);
+   *                                                 a block added while the user types is bound at once
    * @returns {Block}
    */
   public composeBlock({
@@ -232,7 +234,8 @@ export default class BlockManager extends Module {
     data = {},
     id = undefined,
     tunes: tunesData = {},
-  }: {tool: string; id?: string; data?: BlockToolData; tunes?: {[name: string]: BlockTuneData}}): Block {
+    bindEventsWhenIdle = false,
+  }: {tool: string; id?: string; data?: BlockToolData; tunes?: {[name: string]: BlockTuneData}; bindEventsWhenIdle?: boolean}): Block {
     const readOnly = this.Editor.ReadOnly.isEnabled;
     const tool = this.Editor.Tools.blockTools.get(name);
     const block = new Block({
@@ -244,10 +247,16 @@ export default class BlockManager extends Module {
       tunesData,
     }, this.eventsDispatcher);
 
-    if (!readOnly) {
+    /**
+     * exode: the idle binding of a block inserted while typing leaves it without the key handlers for up to 2 s:
+     * Enter right after a markdown shortcut or a new paragraph went to the browser, which put a <div> into the block
+     */
+    if (!readOnly && bindEventsWhenIdle) {
       window.requestIdleCallback(() => {
         this.bindBlockEvents(block);
       }, { timeout: 2000 });
+    } else if (!readOnly) {
+      this.bindBlockEvents(block);
     }
 
     return block;
