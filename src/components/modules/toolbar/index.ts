@@ -11,6 +11,7 @@ import { IconMenu, IconPlus } from '@codexteam/icons';
 import { BlockHovered } from '../../events/BlockHovered';
 import { beautifyShortcut } from '../../utils';
 import { getKeyboardKeyForCode } from '../../utils/keyboard';
+import BlockDrag from './blockDrag';
 
 /**
  * @todo Tab on non-empty block should open Block Settings of the hoveredBlock (not where caret is set)
@@ -97,6 +98,11 @@ export default class Toolbar extends Module<ToolbarNodes> {
    * Block near which we display the Toolbox
    */
   private hoveredBlock: Block;
+
+  /**
+   * exode: dragging a Block by the toggler
+   */
+  private blockDrag: BlockDrag | null = null;
 
   /**
    * Toolbox class instance
@@ -561,21 +567,30 @@ export default class Toolbar extends Module<ToolbarNodes> {
      *
      * mousedown is used because on click selection is lost in Safari and FF
      */
-    this.readOnlyMutableListeners.on(this.nodes.settingsToggler, 'mousedown', (e) => {
-      /**
-       * Stop propagation to prevent block selection clearance
-       *
-       * @see UI.documentClicked
-       */
+    this.blockDrag = this.blockDrag ?? new BlockDrag(() => this.Editor, {
+      onClick: () => {
+        this.settingsTogglerClicked();
+
+        if (this.toolboxInstance?.opened === true) {
+          this.toolboxInstance.close();
+        }
+      },
+      closeToolbox: () => this.toolboxInstance?.close(),
+      moveAndOpen: (block) => this.moveAndOpen(block),
+    });
+
+    /**
+     * exode: the toggler is also the drag handle. The settings open on release without a move (see BlockDrag);
+     * preventDefault of pointerdown keeps the selection (the reason of the former mousedown) and suppresses
+     * the mousedown, so UI.documentClicked does not clear the block selection
+     */
+    this.readOnlyMutableListeners.on(this.nodes.settingsToggler, 'pointerdown', (e: PointerEvent) => {
       e.stopPropagation();
-
-      this.settingsTogglerClicked();
-
-      if (this.toolboxInstance?.opened) {
-        this.toolboxInstance.close();
-      }
+      e.preventDefault();
 
       tooltip.hide(true);
+
+      this.blockDrag?.press(e, this.nodes.settingsToggler, this.hoveredBlock);
     }, true);
 
     /**
@@ -591,7 +606,7 @@ export default class Toolbar extends Module<ToolbarNodes> {
         /**
          * Do not move toolbar if Block Settings or Toolbox opened
          */
-        if (this.Editor.BlockSettings.opened || this.toolboxInstance?.opened) {
+        if (this.Editor.BlockSettings.opened || this.toolboxInstance?.opened || this.blockDrag?.active) {
           return;
         }
 
@@ -604,6 +619,7 @@ export default class Toolbar extends Module<ToolbarNodes> {
    * Disable bindings
    */
   private disableModuleBindings(): void {
+    this.blockDrag?.cancel();
     this.readOnlyMutableListeners.clearAll();
   }
 

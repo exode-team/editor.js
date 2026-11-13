@@ -58,8 +58,9 @@
     @apply --toolbox-button;
 
     margin-left: 3px;
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
+    touch-action: none;
 
     @media (--not-mobile){
       width: 24px;

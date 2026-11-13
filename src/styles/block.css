@@ -89,3 +89,32 @@
     font-style: italic;
   }
 }
+
+/**
+ * exode: dragging a Block by the toggler, sortable as in dnd-kit
+ */
+.ce-block--dragging {
+  opacity: 0.3;
+}
+
+.ce-block--drag-shifting {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ce-block-drag-ghost {
+  position: fixed;
+  z-index: 10;
+  margin: 0;
+  pointer-events: none;
+  border-radius: var(--ce-drag-ghost-radius, 8px);
+  background: var(--ce-drag-ghost-background, #fff);
+  box-shadow: var(--ce-drag-ghost-shadow, 0 12px 32px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12));
+  opacity: 0.96;
+  will-change: transform;
+}
+
+.codex-editor--dragging-block,
+.codex-editor--dragging-block * {
+  cursor: grabbing !important;
+  user-select: none;
+}
